@@ -1,0 +1,112 @@
+name: 云端构建与发布
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    name: Ubuntu ${{ matrix.ubuntu }} · ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu: ['22.04', '24.04', '26.04']
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container: ubuntu:${{ matrix.ubuntu }}
+    timeout-minutes: 30
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      QT_QPA_PLATFORM: offscreen
+      DISCFORGE_UBUNTU_VERSION: ${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: 安装依赖
+        run: |
+          apt-get update
+          apt-get install -y build-essential cmake qt6-base-dev qt6-qpa-plugins fonts-noto-cjk wodim genisoimage dvd+rw-tools udisks2 util-linux eject dpkg-dev
+      - name: 编译、测试并构建 deb
+        run: |
+          ./packaging/build-deb.sh
+          mkdir -p test-results screenshots
+          ./build/core_tests -o test-results/core.txt,txt
+          ctest --test-dir build --output-on-failure > test-results/ctest.txt
+          ./build/discforge-native --self-test --render "$PWD/screenshots/程序界面.png"
+      - name: 安装检查
+        run: |
+          apt-get install -y ./dist/*.deb
+          discforge-native --self-test
+          dpkg-query -W discforge
+      - name: 上传安装包
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-ubuntu-${{ matrix.ubuntu }}-${{ matrix.arch }}
+          path: dist/*.deb
+          if-no-files-found: error
+      - name: 上传测试记录与界面图
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checks-ubuntu-${{ matrix.ubuntu }}-${{ matrix.arch }}
+          path: |
+            test-results/
+            screenshots/
+            build/Testing/Temporary/LastTest.log
+  release:
+    name: 发布候选版
+    needs: build
+    if: github.repository == 'lbg2002/DiscForge' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: deb-ubuntu-*
+          path: release-assets
+          merge-multiple: true
+      - name: 核对版本并发布
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(tr -d '\r\n' < VERSION)
+          tag="v${version}"
+          if [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF_NAME" != "$tag" ]]; then
+            echo "标签与 VERSION 不一致" >&2
+            exit 1
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "版本已发布，保留现有 Release。发布新版本请更新 VERSION。" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          cd release-assets
+          test "$(find . -maxdepth 1 -name '*.deb' | wc -l)" -eq 6
+          sha256sum ./*.deb > SHA256SUMS
+          cd ..
+          cp docs/发布说明.md release-assets/发布说明.md
+          options=()
+          if [[ "$version" == *-* ]]; then options+=(--prerelease); fi
+          gh release create "$tag" release-assets/* \
+            --target "$GITHUB_SHA" --title "光铸 ${version}" \
+            --notes-file docs/发布说明.md "${options[@]}"
+          echo "Release：https://github.com/${GH_REPO}/releases/tag/${tag}" >> "$GITHUB_STEP_SUMMARY"

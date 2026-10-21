@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=光铸
+GenericName=光盘刻录器
+Comment=光盘数据刻录与多区段追加
+Exec=/usr/bin/discforge-native
+Icon=discforge
+Terminal=false
+Categories=Utility;
+Keywords=光盘;刻录;CD;DVD;
+StartupNotify=true

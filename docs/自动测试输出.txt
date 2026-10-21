@@ -1,0 +1,33 @@
+********* Start testing of CoreTests *********
+Config: Using QtTest library 6.10.2, Qt 6.10.2 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.2.0), ubuntu 26.04
+PASS   : CoreTests::initTestCase()
+PASS   : CoreTests::units()
+PASS   : CoreTests::cdDetection()
+PASS   : CoreTests::dvdDetection()
+PASS   : CoreTests::commands()
+PASS   : CoreTests::fifoBudget()
+PASS   : CoreTests::lowMemlockCommand()
+PASS   : CoreTests::wodimLockIsolation()
+PASS   : CoreTests::lateAllocationRegression()
+PASS   : CoreTests::stageAndVerify()
+PASS   : CoreTests::windowsNames()
+PASS   : CoreTests::isolatedDiagnostics()
+PASS   : CoreTests::toolProgress()
+PASS   : CoreTests::splitProgressLines()
+PASS   : CoreTests::mountReadinessRetry()
+PASS   : CoreTests::postWriteOutcomes()
+PASS   : CoreTests::verificationProgress()
+PASS   : CoreTests::rawSessionVerification()
+PASS   : CoreTests::imageIntegration()
+PASS   : CoreTests::cleanupTestCase()
+Totals: 20 passed, 0 failed, 0 skipped, 0 blacklisted, 346ms
+********* Finished testing of CoreTests *********
+Test project build
+    Start 1: core
+1/2 Test #1: core .............................   Passed    0.35 sec
+    Start 2: interface
+2/2 Test #2: interface ........................   Passed    0.10 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.46 sec

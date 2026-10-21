@@ -1,0 +1,2 @@
+#pragma once
+#define DISCFORGE_VERSION "@DISCFORGE_VERSION@"

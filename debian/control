@@ -1,0 +1,10 @@
+Source: discforge
+Section: utils
+Priority: optional
+Maintainer: DiscForge contributors <noreply@localhost>
+Standards-Version: 4.7.0
+
+Package: discforge
+Architecture: any
+Description: Lightweight optical disc burning application
+ Native Qt desktop UI with multisession writing and file verification.
