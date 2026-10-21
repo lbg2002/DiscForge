@@ -123,7 +123,7 @@ CD 追加通过 `-C/-M` 导入原有目录，生成独立映像文件，再交�
 安装依赖：
 
 ```bash
-sudo apt install build-essential cmake qt6-base-dev qt6-qpa-plugins \
+sudo apt install build-essential cmake libgl-dev qt6-base-dev qt6-qpa-plugins \
   wodim genisoimage dvd+rw-tools udisks2 util-linux eject dpkg-dev
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
 cmake --build build -j 4

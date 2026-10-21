@@ -37,7 +37,7 @@ jobs:
       - name: 安装依赖
         run: |
           apt-get update
-          apt-get install -y build-essential cmake qt6-base-dev qt6-qpa-plugins fonts-noto-cjk wodim genisoimage dvd+rw-tools udisks2 util-linux eject dpkg-dev
+          apt-get install -y build-essential cmake libgl-dev qt6-base-dev qt6-qpa-plugins fonts-noto-cjk wodim genisoimage dvd+rw-tools udisks2 util-linux eject dpkg-dev
       - name: 编译、测试并构建 deb
         run: |
           ./packaging/build-deb.sh
