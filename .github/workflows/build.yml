@@ -37,9 +37,10 @@ jobs:
       - name: 安装依赖
         run: |
           apt-get update
-          apt-get install -y build-essential cmake libgl-dev qt6-base-dev qt6-qpa-plugins fonts-noto-cjk wodim genisoimage dvd+rw-tools udisks2 util-linux eject dpkg-dev
+          apt-get install -y python3 build-essential cmake libgl-dev qt6-base-dev qt6-qpa-plugins fonts-noto-cjk wodim genisoimage dvd+rw-tools udisks2 util-linux eject dpkg-dev
       - name: 编译、测试并构建 deb
         run: |
+          python3 -m unittest discover -s tests -p 'test_release.py'
           ./packaging/build-deb.sh
           mkdir -p test-results screenshots
           ./build/core_tests -o test-results/core.txt,txt
@@ -95,32 +96,25 @@ jobs:
             echo "标签与 VERSION 不一致" >&2
             exit 1
           fi
-          if gh release view "$tag" >/dev/null 2>&1; then
-            echo "版本已发布，保留现有 Release。发布新版本请更新 VERSION。" >> "$GITHUB_STEP_SUMMARY"
-            exit 0
+          fresh=false
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            cd release-assets
+            test "$(find . -maxdepth 1 -name '*.deb' | wc -l)" -eq 6
+            sha256sum ./*.deb > SHA256SUMS
+            cd ..
+            cp docs/发布说明.md release-assets/RELEASE_NOTES.zh-CN.md
+            options=()
+            if [[ "$version" == *-* ]]; then options+=(--prerelease); fi
+            gh release create "$tag" release-assets/* \
+              --target "$GITHUB_SHA" --title "光铸 ${version}" \
+              --notes-file docs/发布说明.md "${options[@]}"
+            fresh=true
           fi
-          cd release-assets
-          test "$(find . -maxdepth 1 -name '*.deb' | wc -l)" -eq 6
-          sha256sum ./*.deb > SHA256SUMS
-          cd ..
-          cp docs/发布说明.md release-assets/RELEASE_NOTES.zh-CN.md
-          options=()
-          if [[ "$version" == *-* ]]; then options+=(--prerelease); fi
-          gh release create "$tag" release-assets/* \
-            --target "$GITHUB_SHA" --title "光铸 ${version}" \
-            --notes-file docs/发布说明.md "${options[@]}"
-          # Verify the published names and content digests, including checksums.
-          gh api "repos/${GH_REPO}/releases/tags/${tag}" > release-assets/published.json
-          python3 - <<'PYVERIFY'
-          import hashlib, json, pathlib
-          root = pathlib.Path('release-assets')
-          assets = json.loads((root / 'published.json').read_text())['assets']
-          remote = {a['name']: a for a in assets}
-          expected = {p.name: p for p in root.iterdir() if p.name != 'published.json'}
-          assert set(remote) == set(expected), 'Release attachment names differ'
-          for name, path in expected.items():
-              asset = json.loads(subprocess.check_output(['gh', 'api', f"repos/{os.environ['GH_REPO']}/releases/assets/{remote[name]['id']}"]))
-              assert asset['digest'] == 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest(), name
-          print('Published attachment names and SHA-256 verified')
-          PYVERIFY
+          gh api "repos/${GH_REPO}/releases/tags/${tag}" > /tmp/release-metadata.json
+          mkdir -p verify-release
+          gh release download "$tag" --pattern SHA256SUMS --dir verify-release
+          local_check=()
+          if [[ "$fresh" == true ]]; then local_check=(--local-dir release-assets); fi
+          python3 packaging/verify-release.py --metadata /tmp/release-metadata.json \
+            --checksums verify-release/SHA256SUMS --version "$version" "${local_check[@]}"
           echo "Release：https://github.com/${GH_REPO}/releases/tag/${tag}" >> "$GITHUB_STEP_SUMMARY"
