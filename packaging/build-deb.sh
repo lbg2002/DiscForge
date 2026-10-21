@@ -37,4 +37,7 @@ find "$package_root" -type d -exec chmod 0755 {} +
  cd "$package_root"
  find usr -type f -print0 | sort -z | xargs -0 md5sum > DEBIAN/md5sums
 )
-dpkg-deb --root-owner-group -Zxz --build "$package_root" "$project_dir/dist/discforge_${version}_${arch}.deb"
+# GitHub Release asset names do not preserve '~'. Keep Debian's internal
+# version ordering, but use an ASCII release-safe archive filename.
+asset_version=$(printf '%s' "$version" | tr '~' '-')
+dpkg-deb --root-owner-group -Zxz --build "$package_root" "$project_dir/dist/discforge_${asset_version}_${arch}.deb"

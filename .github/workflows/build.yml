@@ -103,10 +103,24 @@ jobs:
           test "$(find . -maxdepth 1 -name '*.deb' | wc -l)" -eq 6
           sha256sum ./*.deb > SHA256SUMS
           cd ..
-          cp docs/发布说明.md release-assets/发布说明.md
+          cp docs/发布说明.md release-assets/RELEASE_NOTES.zh-CN.md
           options=()
           if [[ "$version" == *-* ]]; then options+=(--prerelease); fi
           gh release create "$tag" release-assets/* \
             --target "$GITHUB_SHA" --title "光铸 ${version}" \
             --notes-file docs/发布说明.md "${options[@]}"
+          # Verify the published names and content digests, including checksums.
+          gh api "repos/${GH_REPO}/releases/tags/${tag}" > release-assets/published.json
+          python3 - <<'PYVERIFY'
+          import hashlib, json, pathlib
+          root = pathlib.Path('release-assets')
+          assets = json.loads((root / 'published.json').read_text())['assets']
+          remote = {a['name']: a for a in assets}
+          expected = {p.name: p for p in root.iterdir() if p.name != 'published.json'}
+          assert set(remote) == set(expected), 'Release attachment names differ'
+          for name, path in expected.items():
+              asset = json.loads(subprocess.check_output(['gh', 'api', f"repos/{os.environ['GH_REPO']}/releases/assets/{remote[name]['id']}"]))
+              assert asset['digest'] == 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest(), name
+          print('Published attachment names and SHA-256 verified')
+          PYVERIFY
           echo "Release：https://github.com/${GH_REPO}/releases/tag/${tag}" >> "$GITHUB_STEP_SUMMARY"

@@ -113,7 +113,7 @@ Window::Window():prefs("DiscForge","DiscForge") {
     auto topLayout=hbox(top,14);
     topLayout->addWidget(label("◎  光铸","brand"));
     topLayout->addStretch();
-    topLayout->addWidget(label("2.0 · 候选五","subtle"));
+    topLayout->addWidget(label("2.0 · 候选版","subtle"));
     vertical->addWidget(top);
     taskPanel = new QFrame;
     taskPanel->setObjectName("taskPanel");
