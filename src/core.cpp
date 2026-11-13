@@ -96,6 +96,7 @@ namespace df {
         return m.hasMatch()?m.captured(group).toLongLong():-1;
     }
     QString Disc::chineseType() const {
+        if(state=="empty")return "未插入光盘";
         if(family=="cd")return profile.contains("RW")?"可擦写光盘":"普通光盘";
         if(family=="dvd")return profile.contains("RW")||profile.contains("RAM")?"高密度可擦写光盘":"高密度光盘";
         return "未识别介质";
@@ -103,7 +104,6 @@ namespace df {
     Disc parseCd(const QString& atip,const QString& toc,const QString& ms) {
         Disc d;
         d.family="cd";
-        d.profile=atip.contains("CD-RW",Qt::CaseInsensitive)?"CD-RW":"CD-R";
         d.raw=atip+'\n'+toc+'\n'+ms;
         const auto lower=d.raw.toLower();
         if(lower.contains("no medium")||lower.contains("medium not present")||lower.contains("no disk / wrong disk")) {
@@ -111,6 +111,7 @@ namespace df {
             d.message="未插入光盘";
             return d;
         }
+        d.profile=atip.contains("CD-RW",Qt::CaseInsensitive)?"CD-RW":"CD-R";
         if(lower.contains("permission denied")||lower.contains("device or resource busy")||lower.contains("seems to be mounted")) {
             d.message="设备权限不足或光盘被占用";
             return d;

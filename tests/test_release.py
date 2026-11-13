@@ -11,7 +11,7 @@ spec.loader.exec_module(module)
 
 class ReleaseTests(unittest.TestCase):
     def setUp(self):
-        self.version = '2.0.0-rc6'
+        self.version = (Path(__file__).parents[1] / 'VERSION').read_text().strip()
         self.names = [f'discforge_{self.version}+ubuntu{os}_{arch}.deb'
                       for os in ('22.04', '24.04', '26.04') for arch in ('amd64', 'arm64')]
         self.digest = hashlib.sha256(b'package').hexdigest()
